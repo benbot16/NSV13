@@ -612,7 +612,7 @@ Proc to spool up a new Z-level for a player ship and assign it a treadmill.
 
 /obj/structure/overmap/proc/dump_locks()
 	SIGNAL_HANDLER
-	for(atom/target in target_painted)
+	for(var/atom/target in target_painted)
 		dump_lock(target)
 
 /obj/structure/overmap/proc/update_gunner_cam(atom/target)
