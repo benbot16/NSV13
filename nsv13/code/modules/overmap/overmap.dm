@@ -421,6 +421,7 @@ Proc to spool up a new Z-level for a player ship and assign it a treadmill.
 			post_load_interior()
 
 	apply_weapons()
+	RegisterSignal(src, COMSIG_FTL_STATE_CHANGE, .proc/dump_locks)
 	//We have a lot of types but not that many weapons per ship, so let's just worry about the ones we do have
 	for(var/firemode = 1; firemode <= MAX_POSSIBLE_FIREMODE; firemode++)
 		var/datum/ship_weapon/SW = weapon_types[firemode]
@@ -495,6 +496,7 @@ Proc to spool up a new Z-level for a player ship and assign it a treadmill.
 		QDEL_NULL(physics2d)
 	if(npc_combat_dice)
 		QDEL_NULL(npc_combat_dice)
+	dump_locks()
 
 	if(deletion_teleports_occupants)
 		var/turf/T = get_turf(src) // Drop them outside if we're parked, forceMove protection will kick in if we're on the overmap
@@ -582,7 +584,7 @@ Proc to spool up a new Z-level for a player ship and assign it a treadmill.
 	if((OM.faction == faction) && !can_friendly_fire())
 		return FALSE
 	if(LAZYFIND(target_painted, target))
-		target_painted.Remove(target)
+		dump_lock(target)
 		if(gunner)
 			to_chat(gunner, "<span class='notice'>Target painting cancelled on [target].</span>")
 		return FALSE
@@ -593,13 +595,25 @@ Proc to spool up a new Z-level for a player ship and assign it a treadmill.
 	if(!gunner)
 		return
 	target_painted.Add(target)
+	RegisterSignal(target, COMSIG_PARENT_QDELETING, .proc/dump_lock)
 	if(last_overmap && ((last_overmap.faction == faction) || can_friendly_fire()))
-		last_overmap.target_painted.Add(target)
+		last_overmap.finish_lockon(target)
 		if(last_overmap.gunner)
 			to_chat(last_overmap.gunner, "<span class='notice'>[src] has painted [target] for AMS targeting.</span>")
 
 	to_chat(gunner, "<span class='notice'>Target painted</span>")
 	relay('nsv13/sound/effects/fighters/locked.ogg', message=null, loop=FALSE, channel=CHANNEL_IMPORTANT_SHIP_ALERT)
+
+/obj/structure/overmap/proc/dump_lock(atom/target)
+	SIGNAL_HANDLER
+	if(target)
+		UnregisterSignal(target, COMSIG_PARENT_QDELETING)
+	target_painted.Remove(target)
+
+/obj/structure/overmap/proc/dump_locks()
+	SIGNAL_HANDLER
+	for(atom/target in target_painted)
+		dump_lock(target)
 
 /obj/structure/overmap/proc/update_gunner_cam(atom/target)
 	var/mob/camera/ai_eye/remote/overmap_observer/cam = gunner.remote_control
