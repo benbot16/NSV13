@@ -19,7 +19,7 @@ you build.
 	var/scan_goal_system = 15 SECONDS
 	var/scan_goal_anomaly = 2 MINUTES
 	var/datum/star_system/scan_target = null
-	var/list/scanned = list()
+	var/static/list/scanned = list()
 	var/datum/techweb/linked_techweb = null
 	var/obj/item/radio/radio //For engineering alerts.
 	var/radio_key = /obj/item/encryptionkey/headset_sci
@@ -53,7 +53,7 @@ Clean override of the navigation computer to provide scan functionality.
 	if(scan_target)
 		data["scan_target"] = scan_target.name
 	else
-		data["scan_target"] = null
+		data["scan_target"] = "None"
 	if(screen == 2) // Here's where the magic happens.
 		data["star_id"] = "\ref[selected_system]"
 		var/list/syst = selected_system.system_type
@@ -127,6 +127,9 @@ Clean override of the navigation computer to provide scan functionality.
 /obj/machinery/computer/ship/navigation/astrometrics/process(delta_time)
 	if(scan_target)
 		scan_progress += delta_time SECONDS
+		if((istype(scan_target) && scan_target.name in scanned) || scan_target in scanned)
+			scan_target = null
+			scan_progress = 0
 		if(scan_progress >= scan_goal)
 			say("Scan of [scan_target] complete!")
 			playsound(src, 'nsv13/sound/voice/scanning_complete.wav', 100, FALSE)
