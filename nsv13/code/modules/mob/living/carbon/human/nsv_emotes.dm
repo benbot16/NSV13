@@ -36,3 +36,24 @@
 	else
 		to_chat(user, "<span class='warning'>You don't have a glass in your hand!</span>")
 		return FALSE
+
+/datum/emote/living/hiss
+	key = "hiss"
+	key_third_person = "hisses"
+	message = "hisses"
+
+/datum/emote/living/hiss/get_sound(mob/living/user)
+	if(islizard(user))
+		return pick('sound/voice/hiss1.ogg', 'sound/voice/hiss2.ogg', 'sound/voice/hiss3.ogg', 'sound/voice/hiss4.ogg', 'sound/voice/hiss5.ogg', 'sound/voice/hiss6.ogg')
+	if(iscatperson(user))
+		return 'nsv13/sound/voice/felinid/cat_hiss.ogg'
+
+/datum/emote/living/ahiss
+	key = "ahiss"
+	message = "hisses!"
+
+/datum/emote/living/ahiss/get_sound(mob/living/user)
+	if(islizard(user))
+		return 'nsv13/sound/voice/lizard/liz_hiss.ogg'
+	if(iscatperson(user))
+		return 'nsv13/sound/voice/felinid/cat_hiss.ogg'
