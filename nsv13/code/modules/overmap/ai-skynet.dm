@@ -1379,6 +1379,9 @@ Seek a ship thich we'll station ourselves around
 	if(OM.shots_left)
 		return 0	//Gotta have run dry.
 
+	if(OM.current_lance && OM.current_lance.datalink_target)
+		return 0 // Command has bigger plans for you, no suiciding
+
 	if(QDELETED(OM.last_target))
 		return 0
 
@@ -1541,9 +1544,30 @@ Seek a ship thich we'll station ourselves around
 
 	OM.move_toward(OM.patrol_target)
 
+//Goal used to pass manual targets to AI. Used for player stratcom/AWACS
+/datum/ai_goal/intercept
+	name = "Intercept a given target"
+	score = AI_SCORE_MAXIMUM
 
+/datum/ai_goal/intercept/check_score(obj/structure/overmap/OM)
+	if(!..()) //If it's not an overmap, or it's not linked to a fleet.
+		return 0
+	if(QDELETED(OM.target_lock) && !OM.lance?.datalink_target) // Invalid lock
+		OM.dump_lock(OM.target_lock)
+		return 0
+	return score
 
-
+/datum/ai_goal/intercept/action(obj/structure/overmap/OM)
+	..()
+	OM.send_radar_pulse() // We've got a target, keep pulsing to keep it locked up
+	if(OM.ai_flags & AI_FLAG_SWARMER)
+		if(overmap_dist(OM, OM.target_lock) <= 4)
+			OM.desired_angle = overmap_angle(OM, OM.target_lock)
+			OM.move_mode = null
+		else
+			OM.move_toward(OM.target_lock)
+	else
+		defensively_engage(OM, OM.target_lock)
 
 //Goal used for anti-fighter craft, encouraging them to attempt to lock on to smaller ships.
 /datum/ai_goal/seek/flyswatter
@@ -1636,7 +1660,7 @@ Seek a ship thich we'll station ourselves around
 	var/can_resupply = FALSE //Can this ship resupply other ships?
 	var/obj/structure/overmap/resupply_target = null
 	var/datum/fleet/fleet = null
-	var/datum/current_lance = null	//Some ships can assign themselves to a lance, which will act together.
+	var/datum/lance/current_lance = null	//Some ships can assign themselves to a lance, which will act together.
 	var/turf/patrol_target = null
 	var/datum/ai_goal/current_goal = null
 	var/obj/structure/overmap/squad_lead = null

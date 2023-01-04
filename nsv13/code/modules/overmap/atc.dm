@@ -6,19 +6,24 @@
 	name = "\improper Seegson model A GCI console"
 	desc = "A console that provides DRADIS, datalink, and advanced hailing capabilities to an operator to assist in ground-controlled interception of enemy aircraft."
 	req_access = list("79") // Hangar access
-	hail_range = 200
 	var/mode = MODE_DESIGNATE
+	var/friendly_hail_range = 100
+	var/transmit_cooldown = 5 SECONDS
+	var/obj/structure/overmap/selected_ship
+
+
+// This proc handles what happens when someone clicks on a target. The target is passed via the paramater,
+// and we do the rest based on the current mode and other vars.
+/obj/machinery/computer/ship/dradis/minor/awacs/proc/on_hail(obj/structure/overmap/target)
+	return
 
 // Override of base DRADIS so we can add AWACS stuff
-/obj/machinery/computer/ship/dradis/ui_data(mob/user)
+/obj/machinery/computer/ship/dradis/minor/awacs/ui_data(mob/user)
 	// DRADIS stuff here (stripped down since we don't need some of it)
 	var/list/data = list()
 	var/list/blips = list() //2-d array declaration
 	var/list/friendly_ships = list() // BLUFOR ships for use in AWACS control
 	var/ship_count = 0
-	for(var/obj/effect/overmap_anomaly/OA in linked?.current_system?.system_contents)
-		if(OA && istype(OA) && OA.z == linked?.z)
-			blips.Add(list(list("x" = OA.x, "y" = OA.y, "colour" = "#eb9534", "name" = "[(OA.scanned) ? OA.name : "anomaly"]", opacity=showAnomalies*0.01, alignment = "uncharted")))
 	for(var/obj/structure/overmap/OM in GLOB.overmap_objects) //Iterate through overmaps in the world! - Needs to go through global overmaps since it may be on a ship's z level or in hyperspace.
 		var/sensor_visible = (OM != linked && OM.faction != linked.faction) ? ((overmap_dist(linked, OM) > max(sensor_range * 2, OM.sensor_profile)) ? 0 : OM.is_sensor_visible(linked)) : SENSOR_VISIBILITY_FULL
 		if(OM.z == linked.z && (sensor_visible >= SENSOR_VISIBILITY_FAINT || linked.target_painted[OM]))
@@ -69,3 +74,43 @@
 	data["mode"] = mode
 
 	return data
+
+/obj/machinery/computer/ship/dradis/minor/awacs/ui_act(action, params)
+	. = ..()
+	if(isobserver(usr))
+		return
+	if(.)
+		return
+	if(!has_overmap())
+		return
+	var/alphaSlide = text2num(params["alpha"])
+	alphaSlide = CLAMP(alphaSlide, 0, 100) //Just in case we have a malformed input.
+	switch(action)
+		if("showFriendlies")
+			showFriendlies = alphaSlide
+		if("showEnemies")
+			showEnemies = alphaSlide
+		if("zoomout")
+			zoom_factor = clamp(zoom_factor - zoom_factor_min, zoom_factor_min, zoom_factor_max)
+		if("zoomin")
+			zoom_factor = clamp(zoom_factor + zoom_factor_min, zoom_factor_min, zoom_factor_max)
+		if("setZoom")
+			if(!params["zoom"])
+				return
+			zoom_factor = clamp(params["zoom"] / 100, zoom_factor_min, zoom_factor_max)
+		if("hail")
+			var/obj/structure/overmap/target = locate(params["target"])
+			if(!target) //Anomalies don't count.
+				return
+			if(world.time < next_hail)
+				return
+			if(target == linked)
+				return
+			next_hail = world.time + transmit_cooldown
+			if(overmap_dist(target, linked) <= hail_range || (target.faction == linked.faction && overmap_dist(target,linked) <= friendly_hail_range))
+				on_hail(target)
+		if("setShip")
+			var/obj/structure/overmap/selected = locate(params["selected"])
+			selected_ship = selected
+			if(selected.pilot)
+				to_chat(selected.pilot, "<span class='notice'>GCI uplink established. Source: [linked]</span>")

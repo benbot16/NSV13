@@ -5,6 +5,26 @@ import { useBackend } from '../backend';
 import { Box, Button, Section, ProgressBar, Knob, Flex, Tabs, LabeledList, Map, StarButton } from '../components';
 import { Window } from '../layouts';
 
+export const awacs = (props, context) => {
+  let dradisContent = DradisContent(props, context);
+
+  return (
+    <Window
+      theme="hackerman"
+      width={700}
+      height={750}>
+      <Window.Content scrollable>
+        <Flex height="100%">
+          <Flex.Item class="awacs_dradis" grow id="radar">
+            {dradisContent}
+          </Flex.Item>
+        </Flex>
+      </Window.Content>
+    </Window>
+  );
+};
+
+// This handles the DRADIS part of the display, and it's a modified version of the standard DRADIS console
 export const DradisContent = (props, context) => {
   const { act, data } = useBackend(context);
 
@@ -53,8 +73,6 @@ export const DradisContent = (props, context) => {
   // Floats representing the different alpha values for different filtered objects.
   let showFriendlies = data.showFriendlies;
   let showEnemies = data.showEnemies;
-  let showAsteroids = data.showAsteroids;
-  let showAnomalies = data.showAnomalies;
   let focus_x = data.focus_x;
   let focus_y = data.focus_y;
   let zoom_factor = data.zoom_factor;
@@ -64,9 +82,10 @@ export const DradisContent = (props, context) => {
   let dradis_targeting = data.dradis_targeting;
   let dradis = DradisMap(data.ships, zoom_factor, data.width_mod, focus_x, focus_y);
 
+  // Our actual "DRADIS" display
   return (
     <Section
-      title="Settings:"
+      title="DRADIS Settings:"
       buttons={(
         <>
           <Button
@@ -76,30 +95,9 @@ export const DradisContent = (props, context) => {
             icon="search-minus"
             onClick={() => act('zoomout')} />
           <Button
-            content="Radar Pulse"
-            icon="bullseye"
-            disabled={!data.can_radar_pulse}
-            onClick={() => act('radar_pulse')} />
-          <Button
-            content={data.sensor_mode}
-            icon="project-diagram"
-            onClick={() => act('sensor_mode')} />
-          <Button
-            content={data.pulse_delay}
-            icon="stopwatch"
-            onClick={() => act('radar_delay')} />
-          <Button
             content="Re-focus"
             icon="camera"
             onClick={() => location.reload()} />
-          {!!data.can_target && (
-            <Button
-              content={(dradis_targeting) ? "Targeting" : "Hailing"}
-              icon={dradis_targeting ? "bullseye" : "square-o"}
-              disabled={!data.can_target}
-              color={(data.dradis_targeting && data.can_radar_pulse) ? "bad" : "good"}
-              onClick={() => act('dradis_targeting')} />
-          )}
         </>
       )}>
       Allies:
@@ -126,30 +124,6 @@ export const DradisContent = (props, context) => {
         step={1}
         stepPixelSize={1}
         onDrag={(e, value) => act('showEnemies', { alpha: value })} />
-      Asteroids:
-      <Knob
-        inline
-        mx={1}
-        color={!!showAsteroids && 'green'}
-        value={showAsteroids}
-        unit="scan strength"
-        minValue="0"
-        maxValue="100"
-        step={1}
-        stepPixelSize={1}
-        onDrag={(e, value) => act('showAsteroids', { alpha: value })} />
-      Anomalies:
-      <Knob
-        inline
-        mx={1}
-        color={!!showAnomalies && 'green'}
-        value={showAnomalies}
-        unit="scan strength"
-        minValue="0"
-        maxValue="100"
-        step={1}
-        stepPixelSize={1}
-        onDrag={(e, value) => act('showAnomalies', { alpha: value })} />
       Zoom:
       <Knob
         inline
@@ -167,17 +141,16 @@ export const DradisContent = (props, context) => {
   );
 };
 
-export const awacs = (props, context) => {
-  let content = DradisContent(props, context);
+export const FighterDisplay = (props, context) => {
+  const { act, data } = useBackend(context);
+
+  const listFriendlyShips = ship => {
+  };
 
   return (
-    <Window
-      theme="hackerman"
-      width={700}
-      height={750}>
-      <Window.Content scrollable>
-        {content}
-      </Window.Content>
-    </Window>
+    <Section
+      title="Available Aircraft:">
+      map
+    </Section>
   );
 };
